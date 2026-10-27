@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Teardown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link id="base-fonts" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ===========================================================
+   PRODUCT TEARDOWN DECK ENGINE
+   Content lives in the JSON block at the bottom (#teardown-data).
+   This file is rendered by build.py; don't hand-edit slides here.
+   =========================================================== */
+
+/* ---------- THEME TOKENS ---------- */
+:root {
+  /* section colours: one jewel tone per teardown lens */
+  --c-context: #3B3BEF;
+  --c-users: #FF5C4D;
+  --c-experience: #0FA68A;
+  --c-business: #E99A00;
+  --c-growth: #D63384;
+  --c-opportunities: #7B4FE0;
+  --c-metrics: #0E8FD8;
+
+  --paper: #F6F1E8;
+  --paper-2: #EFE7DA;
+  --card: #FFFCF6;
+  --ink: #17140F;
+  --ink-2: #3A342C;
+  --muted: #7A7064;
+  --line: rgba(23, 20, 15, 0.12);
+  --shadow: 0 1px 0 rgba(23,20,15,.04), 0 18px 40px -22px rgba(23,20,15,.28);
+  --stage-bg: #0d0c0a;
+  --slide-bg: var(--paper);
+  --on-base: #FFFFFF; /* text on solid section colour; brand mode sets --on-<section> per colour */
+  --c-self: var(--c-users); /* the product's own dot on maps and charts */
+
+  --f-display: 'Fraunces', Georgia, serif;
+  --f-body: 'Manrope', 'Helvetica Neue', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+:root[data-theme="midnight"] {
+  --paper: #0F1022; --paper-2: #16182E; --card: #1A1D36; --ink: #F4EFE6; --ink-2: #D8D2C6;
+  --muted: #9C96A8; --line: rgba(244, 239, 230, 0.12);
+  --shadow: 0 1px 0 rgba(0,0,0,.2), 0 24px 50px -24px rgba(0,0,0,.7);
+  --c-context: #7C7CFF; --c-users: #FF7A6E; --c-experience: #2FD3B0; --c-business: #FFC042;
+  --c-growth: #FF5FA8; --c-opportunities: #A884FF; --c-metrics: #45B8FF;
+  --stage-bg: #05050c;
+  --on-base: #0F1022;
+}
+:root[data-theme="sorbet"] {
+  --paper: #FFF3EA; --paper-2: #FFE6D6; --card: #FFFFFF; --ink: #22123A; --ink-2: #3E2C58;
+  --muted: #8A7896; --line: rgba(34, 18, 58, 0.12);
+  --c-context: #5B3DF5; --c-users: #FF4F79; --c-experience: #00B39B; --c-business: #FF9F1C;
+  --c-growth: #E43FB8; --c-opportunities: #8E5CFF; --c-metrics: #1C9BEF;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- FIXED 16:9 STAGE (from slides skill viewport-base.css) ---------- */
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--stage-bg); }
+.deck-viewport { position: fixed; inset: 0; overflow: hidden; background: var(--stage-bg); }
+.deck-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--slide-bg); }
+.slide { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; display: block; visibility: hidden; opacity: 0; pointer-events: none; background: var(--slide-bg); }
+.slide.active, .slide.visible { visibility: visible; opacity: 1; pointer-events: auto; z-index: 1; }
+img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+.deck-controls { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 1000; }
+@page { size: 1920px 1080px; margin: 0; }
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+  .deck-viewport { position: static; overflow: visible; background: #fff; }
+  .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+  .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+  .deck-controls, .progress { display: none !important; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}
+/* ---------- FEATURE SPOTLIGHT + VOICES ---------- */
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.ba .card { padding: 26px 28px; }
+.ba .arrow { position: absolute; }
+.voices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; flex: 1; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+.voice { display: flex; flex-direction: column; gap: 14px; padding: 24px 28px; }
+.voice .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.voice .plat { font-family: var(--f-mono); font-size: 17px; font-weight: 700; color: var(--ink); padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--line); }
+.voice .q { font-size: 22px; line-height: 1.4; color: var(--ink); flex: 1; }
+.voice .who { font-size: 19px; color: var(--muted); line-height: 1.35; }
+.voice .who b { color: var(--ink); font-weight: 700; }
+.voice.critique { border-top: 6px solid var(--c-users); }
+.voice.praise { border-top: 6px solid var(--c-experience); }
+.voice.mixed { border-top: 6px solid var(--c-business); }
+.sent { font-family: var(--f-mono); font-size: 16px; font-weight: 700; }
+.sent.critique { color: var(--ink-users, var(--c-users)); } .sent.praise { color: var(--ink-experience, var(--c-experience)); } .sent.mixed { color: var(--ink-business, var(--c-business)); }
+
+/* ---------- BRAND TYPOGRAPHY ----------
+   When a deck uses the company's own fonts, applyBrand adds .brand-type: labels drop the template's
+   mono / all-caps / wide-tracking look and use the brand face as the brand itself would, and italics are
+   only used if the brand ships a real italic (--accent-fs). */
+.slide em { font-style: var(--accent-fs, italic); }
+.loop-sub { text-transform: uppercase; letter-spacing: 2px; }
+:root.brand-type .kicker, :root.brand-type .label, :root.brand-type .chip, :root.brand-type .src, :root.brand-type .foot,
+:root.brand-type table.t th, :root.brand-type .verdict, :root.brand-type .stage .fr::before, :root.brand-type .gap .bars .row,
+:root.brand-type .lens .n, :root.brand-type .t-cover .meta, :root.brand-type .jtbd span.k, :root.brand-type .loop-sub { text-transform: none; letter-spacing: 0; }
+:root.brand-type .label { font-size: 21px; font-weight: 700; }
+:root.brand-type .kicker { font-size: 22px; font-weight: 600; }
+:root.brand-type table.t th { font-size: 19px; }
+:root.brand-type .chip, :root.brand-type .verdict { font-size: 18px; }
+:root.brand-type .src { font-size: 16px; }
+:root.brand-type .jtbd span.k { font-size: 26px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; } }
+
+/* ---------- SLIDE CHROME ---------- */
+.slide { font-family: var(--f-body); color: var(--ink); --sec: var(--c-context); --on-sec: var(--on-context, var(--on-base)); --sec-ink: var(--ink-context, var(--sec)); }
+.sec-context { --sec: var(--c-context); --on-sec: var(--on-context, var(--on-base)); --sec-ink: var(--ink-context, var(--sec)); }
+.sec-users { --sec: var(--c-users); --on-sec: var(--on-users, var(--on-base)); --sec-ink: var(--ink-users, var(--sec)); }
+.sec-experience { --sec: var(--c-experience); --on-sec: var(--on-experience, var(--on-base)); --sec-ink: var(--ink-experience, var(--sec)); }
+.sec-business { --sec: var(--c-business); --on-sec: var(--on-business, var(--on-base)); --sec-ink: var(--ink-business, var(--sec)); }
+.sec-growth { --sec: var(--c-growth); --on-sec: var(--on-growth, var(--on-base)); --sec-ink: var(--ink-growth, var(--sec)); }
+.sec-opportunities { --sec: var(--c-opportunities); --on-sec: var(--on-opportunities, var(--on-base)); --sec-ink: var(--ink-opportunities, var(--sec)); }
+.sec-metrics { --sec: var(--c-metrics); --on-sec: var(--on-metrics, var(--on-base)); --sec-ink: var(--ink-metrics, var(--sec)); }
+
+/* soft section-coloured glow + paper grain */
+.slide::before {
+  content: ""; position: absolute; width: 900px; height: 900px; right: -320px; top: -380px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--sec) 22%, transparent) 0%, transparent 68%);
+  pointer-events: none;
+}
+.slide::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .35; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme="midnight"] .slide::after { mix-blend-mode: screen; opacity: .25; }
+
+.frame { position: relative; z-index: 2; height: 100%; padding: 84px 112px 120px; display: flex; flex-direction: column; }
+.head { margin-bottom: 44px; }
+.kicker { font-family: var(--f-mono); font-size: 20px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 14px; }
+.kicker .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--sec); box-shadow: 0 0 0 6px color-mix(in srgb, var(--sec) 18%, transparent); }
+.kicker b { color: var(--sec-ink); font-weight: 600; }
+h2.title { font-family: var(--f-display); font-weight: var(--title-weight, 500); font-size: 76px; line-height: 1.02; letter-spacing: -0.02em; margin-top: 20px; max-width: 1560px; font-variation-settings: "opsz" 120; }
+h2.title em, .hero em { font-style: var(--accent-fs, italic); color: var(--sec-ink); font-weight: 400; }
+.lede { font-size: 28px; line-height: 1.45; color: var(--ink-2); max-width: 1300px; margin-top: 18px; }
+.body { flex: 1; min-height: 0; position: relative; }
+
+.foot { position: absolute; left: 112px; right: 112px; bottom: 44px; z-index: 2; display: flex; align-items: center; justify-content: space-between; font-family: var(--f-mono); font-size: 17px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.foot .bars { display: flex; gap: 6px; }
+.foot .bars i { display: block; width: 34px; height: 6px; border-radius: 3px; opacity: .22; }
+.foot .bars i.on { opacity: 1; width: 56px; }
+
+/* ---------- PRIMITIVES ---------- */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--shadow); padding: 38px 40px; position: relative; overflow: hidden; }
+.card.tint { background: color-mix(in srgb, var(--sec) 10%, var(--card)); border-color: color-mix(in srgb, var(--sec) 30%, transparent); }
+.card.solid { background: var(--sec); color: var(--on-sec); border: none; }
+.card.solid .label, .card.solid .muted { color: var(--on-sec); opacity: .78; }
+.label { font-family: var(--f-mono); font-size: 18px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+.label.c { color: var(--sec-ink); }
+.h3 { font-family: var(--f-display); font-size: 38px; line-height: 1.12; font-weight: 500; letter-spacing: -0.01em; }
+.p { font-size: 25px; line-height: 1.5; color: var(--ink-2); }
+.card.solid .p, .card.solid .h3 { color: var(--on-sec); }
+.muted { color: var(--muted); }
+.small { font-size: 21px; line-height: 1.45; }
+ul.list { list-style: none; display: grid; gap: 14px; }
+ul.list li { font-size: 24px; line-height: 1.42; color: var(--ink-2); padding-left: 32px; position: relative; }
+ul.list li::before { content: ""; position: absolute; left: 4px; top: 13px; width: 11px; height: 11px; border-radius: 3px; background: var(--sec); transform: rotate(45deg); }
+.card.solid ul.list li { color: var(--on-sec); } .card.solid ul.list li::before { background: var(--on-sec); }
+.chip { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 17px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 16px; border-radius: 999px; background: color-mix(in srgb, var(--sec) 14%, transparent); color: var(--sec-ink); font-weight: 600; }
+.grid { display: grid; gap: 28px; height: 100%; }
+.g2 { grid-template-columns: 1fr 1fr; } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
+.num { font-family: var(--f-display); font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+.src { font-family: var(--f-mono); font-size: 15px; color: var(--muted); letter-spacing: .04em; margin-top: 10px; }
+strong { font-weight: 700; color: var(--ink); }
+.card.solid strong { color: var(--on-sec); }
+
+/* ---------- REVEAL ANIMATION ---------- */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.slide.visible .reveal { opacity: 1; transform: none; }
+.slide.visible .reveal.d1 { transition-delay: .08s; } .slide.visible .reveal.d2 { transition-delay: .16s; }
+.slide.visible .reveal.d3 { transition-delay: .24s; } .slide.visible .reveal.d4 { transition-delay: .32s; }
+.slide.visible .reveal.d5 { transition-delay: .40s; } .slide.visible .reveal.d6 { transition-delay: .48s; }
+
+/* ---------- COVER ---------- */
+.t-cover .frame { justify-content: space-between; padding-bottom: 96px; }
+.t-cover .brand { display: flex; align-items: center; gap: 22px; }
+.logo { width: 92px; height: 92px; border-radius: 26px; background: var(--logo-bg, var(--ink)); color: var(--paper); display: grid; place-items: center; font-family: var(--f-display); font-size: 50px; font-weight: 600; overflow: hidden; }
+.logo img { width: 100%; height: 100%; object-fit: contain; padding: 14px; }
+.t-cover .hero { font-family: var(--f-display); font-size: 172px; line-height: .92; letter-spacing: -0.045em; font-weight: var(--title-weight, 500); max-width: 1200px; font-variation-settings: "opsz" 144; }
+.t-cover .sub { font-size: 34px; color: var(--ink-2); max-width: 1000px; line-height: 1.35; margin-top: 30px; }
+.t-cover .meta { display: flex; gap: 56px; font-family: var(--f-mono); font-size: 19px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.t-cover .meta b { display: block; color: var(--ink); font-size: 24px; letter-spacing: .02em; margin-top: 8px; text-transform: none; font-family: var(--f-body); }
+.orbs { position: absolute; right: 90px; top: 150px; width: 700px; height: 760px; z-index: 1; }
+.orbs span { position: absolute; border-radius: 50%; mix-blend-mode: multiply; filter: saturate(1.1); animation: float 9s ease-in-out infinite; }
+:root[data-theme="midnight"] .orbs span { mix-blend-mode: screen; opacity: .85; }
+@keyframes float { 50% { transform: translate(10px, -16px); } }
+.stripe { display: flex; height: 14px; border-radius: 7px; overflow: hidden; width: 620px; }
+.stripe i { flex: 1; }
+
+/* ---------- LENSES (agenda) ---------- */
+.lenses { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.lens { border-radius: 28px; padding: 34px 36px; min-height: 300px; display: flex; flex-direction: column; justify-content: space-between; color: var(--on-sec); background: var(--sec); box-shadow: var(--shadow); }
+.lens .n { font-family: var(--f-mono); font-size: 20px; opacity: .8; letter-spacing: .1em; }
+.lens .t { font-family: var(--f-display); font-size: 40px; line-height: 1.05; font-weight: 500; }
+.lens .d { font-size: 20px; line-height: 1.4; opacity: .9; margin-top: 10px; }
+.lens.intro { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+
+/* ---------- STATS ---------- */
+.stat { display: flex; flex-direction: column; justify-content: space-between; }
+.stat .num { font-size: 84px; color: var(--sec-ink); }
+.stat .p { margin-top: 12px; }
+
+/* ---------- VERDICT RING ---------- */
+.ring { position: relative; width: 300px; height: 300px; margin: 0 auto; }
+.ring svg { transform: rotate(-90deg); }
+.ring .v { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.ring .v .num { font-size: 104px; color: var(--sec-ink); }
+
+/* ---------- PERSONA ---------- */
+.persona .avatar { width: 96px; height: 96px; border-radius: 30px; display: grid; place-items: center; font-size: 52px; background: color-mix(in srgb, var(--sec) 16%, var(--card)); margin-bottom: 22px; }
+.persona .role { font-size: 22px; color: var(--muted); margin-top: 6px; }
+.persona hr { border: 0; border-top: 1px dashed var(--line); margin: 22px 0; }
+
+/* ---------- JTBD ---------- */
+.jtbd { font-family: var(--f-display); font-size: 62px; line-height: 1.16; letter-spacing: -0.015em; font-weight: 400; }
+.jtbd span.k { font-family: var(--f-mono); font-size: 22px; letter-spacing: .14em; text-transform: uppercase; color: var(--sec-ink); vertical-align: middle; margin-right: 12px; }
+.meter { height: 16px; border-radius: 8px; background: color-mix(in srgb, var(--sec) 14%, transparent); overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 8px; background: var(--sec); }
+
+/* ---------- JOURNEY ---------- */
+.journey { display: grid; gap: 22px; height: 100%; grid-template-rows: 220px 1fr; }
+.journey .curve { position: relative; }
+.journey .cols { display: grid; gap: 20px; }
+.stage { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 26px 26px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+.stage .h3 { font-size: 34px; }
+.stage .p.small { font-size: 22px; }
+.stage .fr { margin-top: auto; padding-top: 14px; border-top: 1px dashed var(--line); font-size: 20px; line-height: 1.4; color: var(--c-users); }
+.stage .fr::before { content: "Friction · "; font-family: var(--f-mono); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; }
+
+/* ---------- PHONE / SCREENSHOT FRAME ---------- */
+.phone { width: 380px; height: 100%; max-height: 760px; border-radius: 54px; background: #0d0d12; border: 1px solid var(--line); padding: 16px; box-shadow: 0 40px 80px -30px rgba(0,0,0,.45); margin: 0 auto; }
+.phone .scr { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; background: linear-gradient(160deg, color-mix(in srgb, var(--sec) 35%, var(--card)), var(--card)); display: grid; place-items: center; color: var(--muted); font-family: var(--f-mono); font-size: 18px; text-align: center; padding: 30px; }
+.phone .scr img { width: 100%; height: 100%; object-fit: cover; object-position: top; max-width: none; max-height: none; }
+.shot { border-radius: 24px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); height: 100%; background: var(--card); }
+.shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+/* ---------- TABLES ---------- */
+table.t { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 22px; background: var(--card); border-radius: 26px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
+table.t th { text-align: left; font-family: var(--f-mono); font-size: 16px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 22px 26px; background: color-mix(in srgb, var(--sec) 8%, var(--card)); border-bottom: 1px solid var(--line); }
+table.t td { padding: 20px 26px; border-bottom: 1px solid var(--line); line-height: 1.4; color: var(--ink-2); vertical-align: top; }
+table.t tr:last-child td { border-bottom: none; }
+table.t td:first-child { font-weight: 700; color: var(--ink); }
+table.t tr.top td { background: color-mix(in srgb, var(--sec) 12%, var(--card)); }
+.verdict { display: inline-block; font-family: var(--f-mono); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+.v-keep { background: color-mix(in srgb, var(--c-experience) 16%, transparent); color: var(--c-experience); }
+.v-improve { background: color-mix(in srgb, var(--c-users) 16%, transparent); color: var(--c-users); }
+.v-clever { background: color-mix(in srgb, var(--c-opportunities) 16%, transparent); color: var(--c-opportunities); }
+.v-avoid { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink-2); }
+.dots { display: inline-flex; gap: 6px; } .dots i { width: 16px; height: 16px; border-radius: 50%; background: var(--line); } .dots i.on { background: var(--sec); }
+.score { font-family: var(--f-display); font-size: 34px; font-weight: 600; color: var(--sec-ink); }
+
+/* ---------- BUSINESS ---------- */
+.stream { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px 20px; padding: 18px 0; border-bottom: 1px dashed var(--line); }
+.stream:last-child { border-bottom: 0; }
+.stream .h3 { font-size: 30px; }
+.stream .meter { grid-column: 1 / -1; }
+.stream .pct { font-family: var(--f-display); font-size: 40px; color: var(--sec-ink); font-weight: 600; }
+.tier { border-radius: 22px; padding: 22px 24px; border: 1px solid var(--line); background: var(--card); }
+.tier .num { font-size: 44px; color: var(--sec-ink); margin: 6px 0; }
+
+/* ---------- GAPS ---------- */
+.gap { display: grid; grid-template-columns: 1.15fr 0.9fr 1.3fr; gap: 36px; align-items: center; padding: 26px 40px; max-height: 280px; background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); }
+.gap .bars { display: grid; gap: 12px; }
+.gap .bars .row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 12px; font-family: var(--f-mono); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.quote { font-family: var(--f-display); font-style: var(--accent-fs, italic); font-size: 27px; line-height: 1.38; color: var(--ink-2); border-left: 4px solid var(--sec); padding-left: 20px; }
+
+/* ---------- SOLUTION ---------- */
+.sol { display: flex; flex-direction: column; gap: 16px; }
+.sol .badge { position: absolute; top: 30px; right: 32px; }
+.sol .row { border-top: 1px dashed var(--line); padding-top: 14px; }
+
+/* ---------- METRICS ---------- */
+.nsm { display: flex; flex-direction: column; justify-content: center; }
+.nsm .h3 { font-size: 58px; line-height: 1.04; }
+.metric { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 24px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); }
+.metric .p { font-size: 23px; } .metric .chip { flex-shrink: 0; }
+
+/* ---------- STATEMENT / DIVIDER ---------- */
+.t-statement .frame { justify-content: center; }
+.t-statement .big { font-family: var(--f-display); font-size: 104px; line-height: 1.04; letter-spacing: -0.03em; font-weight: 400; max-width: 1560px; }
+.t-statement .big em { color: var(--sec-ink); }
+.t-divider { background: var(--sec); --paper: var(--sec); }
+.t-divider .frame { justify-content: flex-end; padding-bottom: 150px; color: #fff; }
+.t-divider .n { font-family: var(--f-display); font-size: 300px; line-height: .8; font-weight: 300; opacity: .35; }
+.t-divider .big { font-family: var(--f-display); font-size: 130px; line-height: .95; letter-spacing: -0.035em; font-weight: 500; }
+.t-divider .p { color: rgba(255,255,255,.85); font-size: 32px; margin-top: 24px; max-width: 1100px; }
+.t-divider .foot { color: rgba(255,255,255,.7); }
+.t-divider::before { background: radial-gradient(circle, rgba(255,255,255,.18) 0%, transparent 65%); }
+
+/* ---------- PROGRESS (outside stage) ---------- */
+.progress { position: fixed; left: 0; right: 0; top: 0; height: 4px; z-index: 1000; background: rgba(255,255,255,.08); }
+.progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--c-context), var(--c-users), var(--c-experience), var(--c-business), var(--c-growth), var(--c-opportunities), var(--c-metrics)); transition: width .4s var(--ease); }
+.deck-controls { font-family: var(--f-mono); font-size: 12px; color: rgba(255,255,255,.45); letter-spacing: .1em; opacity: 0; transition: opacity .3s; }
+body:hover .deck-controls { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="progress"><i id="progressBar"></i></div>
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage" aria-live="polite"></main>
+</div>
+<div class="deck-controls" id="counter">← → to navigate · T theme · P print</div>
+
+<!-- TEARDOWN CONTENT: build.py replaces this block with the teardown JSON -->
+<script id="teardown-data" type="application/json">{
+ "date": "Oct 2026",
+ "goal": "Acquisition (Ownly) + ride retention",
+ "brand": {
+  "source": "rapido.bike live site, Oct 2026: Rapido yellow (#F8CB19 logo, #FFCA20 buttons), navy #1E4B82, black CTAs on a light #F7FAFF page; the site's typeface is Noto Sans (bold headings). Teal sampled from site imagery.",
+  "mode": "light",
+  "paper": "#F7FAFF",
+  "card": "#FFFFFF",
+  "ink": "#111111",
+  "ink2": "#394454",
+  "muted": "#6B7685",
+  "stage": "#0B1F3A",
+  "logoBg": "#FFFFFF",
+  "colors": [
+   "#FFCA20",
+   "#1E4B82",
+   "#111111",
+   "#00A0C0"
+  ],
+  "sections": {
+   "context": "#FFCA20",
+   "users": "#1E4B82",
+   "experience": "#111111",
+   "business": "#E0A800",
+   "growth": "#00A0C0",
+   "opportunities": "#3D6FB0",
+   "metrics": "#0B2E5A"
+  },
+  "self": "#FFCA20",
+  "textDark": "#111111",
+  "fontDisplay": "Noto Sans",
+  "fontBody": "Noto Sans",
+  "fontLabel": "Noto Sans",
+  "titleWeight": 700,
+  "accent": "highlight"
+ },
+ "product": {
+  "name": "Rapido",
+  "tagline": "India's cheapest way across town, and the fight to make every ride go as booked",
+  "category": "Mobility · Consumer",
+  "logo": "logo.svg"
+ },
+ "slides": [
+  {
+   "type": "cover",
+   "title": "Rapido",
+   "subtitle": "Cheapest rides in India, and now *zero-commission food*. A feature-led teardown of Ownly"
+  },
+  {
+   "type": "lenses",
+   "title": "Seven lenses, *one* question: why ride again",
+   "intro": "Diagnose, then prescribe",
+   "descs": [
+    "Who Rapido is and what we're solving",
+    "Riders, captains and the job",
+    "Booking, pickup, payment",
+    "How a ₹38 ride makes money",
+    "Loops, channels, rivals",
+    "Where rides go wrong, and fixes",
+    "North Star and takeaways"
+   ]
+  },
+  {
+   "type": "tldr",
+   "title": "The *short* version",
+   "insights": [
+    {
+     "title": "Price wins the first ride",
+     "body": "In Rapido's own App Store screenshot a bike costs **₹38** and a cab **₹113**. That gap fills **26 lakh rides a day**."
+    },
+    {
+     "title": "Zero commission won supply",
+     "body": "Auto and cab captains keep the whole fare and pay a small fee. Uber's CEO now calls Rapido its **biggest rival in India**."
+    },
+    {
+     "title": "Trust leaks at pickup and payment",
+     "body": "Riders report calls to cancel, cash demands and new fares at drop. That's where Rapido has the least control, because captains get paid directly."
+    }
+   ],
+   "verdict": {
+    "score": 7.4,
+    "label": "Unbeatable on price and supply, shaky on trust per ride"
+   }
+  },
+  {
+   "type": "snapshot",
+   "title": "From bike taxis to India's *busiest* ride app",
+   "oneliner": "Book a **bike, auto or cab** in minutes at the lowest fare in town. Captains keep their fares and pay Rapido a subscription.",
+   "facts": [
+    {
+     "k": "Founded",
+     "v": "2015, Bengaluru"
+    },
+    {
+     "k": "Modes",
+     "v": "Bike, Auto, Cab, Parcel, Metro tickets"
+    },
+    {
+     "k": "Food",
+     "v": "Ownly, launched 2025"
+    },
+    {
+     "k": "FY25 net loss",
+     "v": "₹258 Cr, down from ₹371 Cr"
+    },
+    {
+     "k": "FY25 ad spend",
+     "v": "₹252 Cr"
+    },
+    {
+     "k": "Captain model",
+     "v": "Zero commission (autos since Feb 2024)"
+    }
+   ],
+   "stats": [
+    {
+     "value": "₹934Cr",
+     "label": "FY25 operating revenue, **+44%**",
+     "source": "Social Samosa / Storyboard18, FY25"
+    },
+    {
+     "value": "26L",
+     "label": "Average rides a day",
+     "source": "Q2 FY25 reports (CMV360, Planify)"
+    },
+    {
+     "value": "$3B",
+     "label": "Valuation, May 2026 round led by Prosus",
+     "source": "TechCrunch, May 2026"
+    },
+    {
+     "value": "400+",
+     "label": "Cities served",
+     "source": "TechCrunch, May 2026"
+    }
+   ]
+  },
+  {
+   "type": "spotlight",
+   "title": "The feature everyone's *arguing* about: Ownly",
+   "feature": "Ownly: zero-commission food delivery",
+   "launched": "Mar 2026, Bengaluru",
+   "goal": "Acquisition",
+   "platform": "In the Rapido app since Jul 2026",
+   "what": "Restaurants pay no commission. Customers pay the menu price plus a delivery fee of about ₹30, delivered by Rapido's bike captains.",
+   "before": "Food apps take 25–35% per order (NRAI). A ₹119 pizza reached about ₹190 on Zomato after charges (Hindustan Times, Mar 2026).",
+   "after": "The same pizza at menu price plus ~₹30. Ownly claims ~10% of Bengaluru's online food orders and close to 20,000 restaurants.",
+   "why": [
+    "Fill captains' idle hours: rides peak at commutes, food peaks at lunch and dinner",
+    "Sell food to 7 crore+ monthly ride users at almost no extra CAC",
+    "Win restaurants angry about commissions (NRAI MoU, Jul 2026)",
+    "Reuse the zero-commission story that won over captains"
+   ],
+   "signal": "4.6★ from 19k App Store ratings, while LinkedIn PMs and analysts doubt the economics, and recent reviews complain about late orders."
+  },
+  {
+   "type": "voices",
+   "title": "PMs doubt the *maths*; users love the price",
+   "summary": "Praise is about price. Critique is about reliability and economics, which is the same captain-control problem Rapido has in rides.",
+   "quotes": [
+    {
+     "text": "It's going after the huge chunk of restaurants that aren't even online yet.",
+     "who": "Aravind Sanka",
+     "role": "Co-founder & CEO, Rapido",
+     "platform": "News",
+     "date": "Mar 2026",
+     "sentiment": "praise"
+    },
+    {
+     "text": "Can zero commission really scale, or is it acquisition pricing that changes once Ownly hits critical mass?",
+     "who": "Ayush Gupta",
+     "role": "\"Thinking like a PM\" series",
+     "platform": "LinkedIn",
+     "date": "2026",
+     "sentiment": "mixed",
+     "paraphrased": true
+    },
+    {
+     "text": "The real question is whether Ownly can make people hungry, beyond making delivery cheap.",
+     "who": "Vivek Asthana",
+     "role": "Frozen Bottle",
+     "platform": "LinkedIn",
+     "date": "2026",
+     "sentiment": "mixed",
+     "paraphrased": true
+    },
+    {
+     "text": "Cheaper overall with no extra charges. Now add more well-known restaurants and longer distances.",
+     "who": "UyudiD",
+     "role": "App Store reviewer",
+     "platform": "App Store",
+     "date": "Sep 2026",
+     "sentiment": "praise",
+     "paraphrased": true
+    },
+    {
+     "text": "Finally deleting after 50 orders: 15–20 of them were delayed, and cancelling was hard.",
+     "who": "Parth Priyadarshi",
+     "role": "App Store reviewer",
+     "platform": "App Store",
+     "date": "Mar 2026",
+     "sentiment": "critique",
+     "paraphrased": true
+    },
+    {
+     "text": "Whether it can sustain the economics at scale remains to be seen.",
+     "who": "Anupam Jain",
+     "role": "Director, Vogabe Advisors",
+     "platform": "Upstox",
+     "date": "Mar 2026",
+     "sentiment": "critique"
+    }
+   ]
+  },
+  {
+   "type": "framing",
+   "title": "What are we *solving* for?",
+   "problem": "Riders come back for the price, but pickup and payment are where trips go wrong. Every ride that doesn't go as booked loses a rider Rapido paid a lot to win, and we think that's the real retention leak.",
+   "goal": "Retention: repeat riders",
+   "scope": "Rider app · bike, auto and cab rides in metro cities",
+   "metric": "Rides completed as booked",
+   "questions": [
+    "How many cancellations start with the captain calling the rider?",
+    "Do fare disputes cluster in auto and cab, where captains are paid directly?",
+    "Do riders churn after one bad ride or after several?"
+   ],
+   "assumptions": [
+    "The subscription model for captains stays",
+    "Rider fares stay the lowest in market",
+    "Food (Ownly) is out of scope"
+   ]
+  },
+  {
+   "type": "personas",
+   "section": "users",
+   "title": "Two riders, one captain, *three* stakes",
+   "personas": [
+    {
+     "emoji": "🎒",
+     "name": "Arjun, 24",
+     "role": "Analyst, bike taxi from the metro daily",
+     "goal": "Reach office in 15 minutes for under ₹50",
+     "pains": [
+      "Captains call to ask where he's going",
+      "Some ask for cash"
+     ],
+     "before": "Shared autos and long walks"
+    },
+    {
+     "emoji": "👩‍💻",
+     "name": "Meera, 31",
+     "role": "Designer, autos and cabs after 8 pm",
+     "goal": "A safe ride home at the fare shown",
+     "pains": [
+      "Fare changes at drop",
+      "Bike riders without helmets"
+     ],
+     "before": "Uber and Ola at higher fares"
+    },
+    {
+     "emoji": "🛺",
+     "name": "Ravi, 35",
+     "role": "Auto captain on a daily fee",
+     "goal": "Keep the whole fare and a full day",
+     "pains": [
+      "Short, low-fare trips",
+      "Penalties for cancellations"
+     ],
+     "before": "Street hails, 25–30% commission apps"
+    }
+   ]
+  },
+  {
+   "type": "jtbd",
+   "section": "users",
+   "title": "The job is getting there *cheap*, and on time",
+   "statement": {
+    "when": "the bus is slow and a cab is too pricey,",
+    "want": "a ride at my door in minutes at a fare I know upfront,",
+    "so": "I reach on time *without* overpaying."
+   },
+   "intensity": {
+    "label": "Painkiller, twice a day, every working day",
+    "score": 8
+   },
+   "before": [
+    "Bargaining with street autos",
+    "Buses and shared autos with long waits",
+    "Cabs at 3× the fare for one person"
+   ]
+  },
+  {
+   "type": "journey",
+   "section": "experience",
+   "title": "Booking feels great; pickup and payment *don't*",
+   "stages": [
+    {
+     "name": "Discover",
+     "touchpoint": "First ride free",
+     "doing": "Installs with a FREERIDE coupon",
+     "emotion": 4,
+     "friction": ""
+    },
+    {
+     "name": "Book",
+     "touchpoint": "Fare ladder",
+     "doing": "Sees bike at ₹38 next to a ₹113 cab",
+     "emotion": 5,
+     "friction": ""
+    },
+    {
+     "name": "Pickup",
+     "touchpoint": "Captain call",
+     "doing": "Captain calls to ask the drop or payment mode",
+     "emotion": 2,
+     "friction": "Asked to cancel or pay cash"
+    },
+    {
+     "name": "Ride",
+     "touchpoint": "On the road",
+     "doing": "Fast and cheap through traffic",
+     "emotion": 3,
+     "friction": "No helmet, rash riding"
+    },
+    {
+     "name": "Pay",
+     "touchpoint": "Direct QR / cash",
+     "doing": "Pays the captain directly",
+     "emotion": 2,
+     "friction": "Fare differs from the app"
+    },
+    {
+     "name": "Return",
+     "touchpoint": "Next commute",
+     "doing": "Comes back for the price",
+     "emotion": 4,
+     "friction": "One bad ride sends them to Uber"
+    }
+   ]
+  },
+  {
+   "type": "ux",
+   "section": "experience",
+   "title": "One screen sells the *price ladder*",
+   "image": "shot2.jpg",
+   "imageAlt": "Rapido fare options: bike, auto, cab economy, cab premium",
+   "works": [
+    "Bike **₹38**, auto **₹79**, cab **₹113**: every option and price on one screen",
+    "ETAs (\"2 min away\") and drop times next to each fare",
+    "Cash and offers sit right under the Book button"
+   ],
+   "friction": [
+    "Cash is the default-looking option, which invites off-app fares later",
+    "Nothing tells the rider the fare is locked"
+   ],
+   "clever": "Showing the **cab** next to the bike makes ₹38 feel like a steal, so the ladder sells the cheapest option for Rapido."
+  },
+  {
+   "type": "ux",
+   "section": "experience",
+   "title": "The captain's QR lives *inside* the app",
+   "image": "shot4.jpg",
+   "imageAlt": "Rapido payment screen with wallet and QR code",
+   "works": [
+    "Pay straight to the captain's QR, so captains get their money instantly",
+    "Rapido Wallet keeps a balance for one-tap rides",
+    "The safety toolkit shares live location and emergency contacts"
+   ],
+   "friction": [
+    "Once money moves captain-to-rider, Rapido can't easily enforce the app fare",
+    "Disputes happen after the ride, when the rider has already paid"
+   ],
+   "clever": "The **QR is the zero-commission model made visible**: riders literally see that the fare goes to the captain."
+  },
+  {
+   "type": "features",
+   "section": "experience",
+   "title": "Every feature pushes the *lowest* fare",
+   "rows": [
+    {
+     "feature": "Bike taxi",
+     "why": "Cheapest, fastest way through traffic",
+     "behavior": "Daily commutes, metro last mile",
+     "verdict": "keep"
+    },
+    {
+     "feature": "Fare ladder",
+     "why": "Anchor bikes against cabs",
+     "behavior": "Trades riders down to bikes and autos",
+     "verdict": "clever"
+    },
+    {
+     "feature": "Direct payments",
+     "why": "Captains keep the full fare",
+     "behavior": "Loyal supply, weaker fare control",
+     "verdict": "improve"
+    },
+    {
+     "feature": "Safety toolkit",
+     "why": "Answer bike-taxi safety fears",
+     "behavior": "Live location sharing, SOS",
+     "verdict": "keep"
+    },
+    {
+     "feature": "Parcel",
+     "why": "Use idle bike supply",
+     "behavior": "Off-peak trips for captains",
+     "verdict": "clever"
+    },
+    {
+     "feature": "Metro tickets, Ownly",
+     "why": "More reasons to open the app",
+     "behavior": "Early, low frequency so far",
+     "verdict": "improve"
+    }
+   ],
+   "absences": "No fare guarantee and no reliability score for captains. Riders can't tell a dependable captain from a risky one before pickup."
+  },
+  {
+   "type": "business",
+   "section": "business",
+   "title": "Captains are the *customer* who pays",
+   "streams": [
+    {
+     "name": "Delivery & parcel",
+     "note": "Largest stream in FY25, about ₹340 Cr (Social Samosa)"
+    },
+    {
+     "name": "Captain subscriptions",
+     "note": "Autos pay a small daily fee; cabs pay a fixed fee after an earnings threshold"
+    },
+    {
+     "name": "Bike taxi & platform fees",
+     "note": "The rest of ₹934 Cr; exact split isn't public"
+    }
+   ],
+   "pricing": [
+    {
+     "tier": "Auto captain",
+     "price": "₹9–29",
+     "for": "per day, unlimited rides (reported)"
+    },
+    {
+     "tier": "Cab captain",
+     "price": "₹500",
+     "for": "after ₹10k earnings (at launch)"
+    },
+    {
+     "tier": "Rider",
+     "price": "Fare",
+     "for": "lowest in market, no surge pitch"
+    }
+   ],
+   "moat": "The **densest bike and auto supply in India**, held together because captains keep 100% of the fare",
+   "payer": "riders pay captains; captains pay Rapido. Rapido sells software to drivers and runs the demand side as a marketplace."
+  },
+  {
+   "type": "growth",
+   "section": "growth",
+   "title": "A *supply loop* that runs on cheap fares",
+   "loopName": "Supply loop",
+   "loop": [
+    "Lowest fares",
+    "More riders",
+    "More trips per captain",
+    "More captains join",
+    "Shorter ETAs"
+   ],
+   "aha": "A bike at your door in **2 minutes** for a third of a cab fare",
+   "channels": [
+    "First-ride-free coupons",
+    "Heavy ads (₹252 Cr in FY25)",
+    "Captain referrals in new cities"
+   ],
+   "hooks": [
+    "Twice-a-day commutes",
+    "Metro tickets in the app",
+    "Parcel and Ownly food"
+   ]
+  },
+  {
+   "type": "competition",
+   "section": "growth",
+   "title": "The *cheapest* ride, in every mode",
+   "axes": {
+    "x": [
+     "Lowest fare",
+     "Premium"
+    ],
+    "y": [
+     "One mode",
+     "Every mode"
+    ]
+   },
+   "players": [
+    {
+     "name": "Rapido",
+     "x": 16,
+     "y": 80,
+     "self": true
+    },
+    {
+     "name": "Uber",
+     "x": 76,
+     "y": 86
+    },
+    {
+     "name": "Ola",
+     "x": 58,
+     "y": 72
+    },
+    {
+     "name": "Namma Yatri",
+     "x": 30,
+     "y": 42
+    },
+    {
+     "name": "Street autos",
+     "x": 12,
+     "y": 14
+    }
+   ],
+   "matrix": {
+    "cols": [
+     "Bike",
+     "Auto",
+     "Cab",
+     "Driver model",
+     "Delivery"
+    ],
+    "rows": [
+     {
+      "name": "Rapido",
+      "self": true,
+      "values": [
+       3,
+       3,
+       2,
+       "Subscription",
+       3
+      ]
+     },
+     {
+      "name": "Uber",
+      "values": [
+       2,
+       3,
+       3,
+       "Commission",
+       1
+      ]
+     },
+     {
+      "name": "Ola",
+      "values": [
+       2,
+       3,
+       3,
+       "Mixed",
+       1
+      ]
+     },
+     {
+      "name": "Namma Yatri",
+      "values": [
+       1,
+       3,
+       2,
+       "Zero commission",
+       0
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "type": "gaps",
+   "section": "opportunities",
+   "title": "Where rides *go wrong*, in riders' words",
+   "themes": [
+    {
+     "title": "Called to cancel or pay cash",
+     "root": "Captains screen trips by drop and payment before pickup",
+     "frequency": 4,
+     "severity": 5,
+     "quote": "The captain called before pickup and asked me to cancel and travel directly",
+     "source": "Voxya complaint, Mar 2026 (paraphrased)"
+    },
+    {
+     "title": "Fare changes at drop",
+     "root": "Direct payment, no fare lock",
+     "frequency": 3,
+     "severity": 4,
+     "quote": "The app showed ₹534; the driver's screen showed ₹650",
+     "source": "Deccan Herald, Bengaluru (paraphrased)"
+    },
+    {
+     "title": "Bike safety doubts",
+     "root": "Helmet and riding checks rely on the captain",
+     "frequency": 3,
+     "severity": 4,
+     "quote": "No helmet for me, and he drove fast the whole way",
+     "source": "Rider complaint aggregators (paraphrased)"
+    }
+   ]
+  },
+  {
+   "type": "rice",
+   "section": "opportunities",
+   "title": "Prioritising with *RICE*",
+   "reachUnit": "M riders/qtr",
+   "rows": [
+    {
+     "idea": "**Fare lock**: the captain's QR carries the app fare, and mismatches are refunded",
+     "reach": 10,
+     "impact": 2,
+     "confidence": 70,
+     "effort": 2
+    },
+    {
+     "idea": "**Cancel guard**: masked calls and one-tap report when asked to cancel",
+     "reach": 12,
+     "impact": 2,
+     "confidence": 60,
+     "effort": 3
+    },
+    {
+     "idea": "**Reliability-priced fee**: lower daily fee for captains who complete as booked",
+     "reach": 12,
+     "impact": 3,
+     "confidence": 50,
+     "effort": 5
+    },
+    {
+     "idea": "Helmet selfie check at bike pickup",
+     "reach": 8,
+     "impact": 2,
+     "confidence": 50,
+     "effort": 4
+    },
+    {
+     "idea": "Metro + bike commute pass",
+     "reach": 3,
+     "impact": 2,
+     "confidence": 60,
+     "effort": 3
+    }
+   ],
+   "note": "Reach is based on ~1.7 Cr monthly customers. Impact: 3 = massive, 2 = high, 1 = medium. Effort is in person-months. The scores are directional estimates, not Rapido data."
+  },
+  {
+   "type": "solutions",
+   "section": "opportunities",
+   "title": "Make the booked ride the *only* ride",
+   "cards": [
+    {
+     "tag": "Top pick",
+     "title": "Fare lock",
+     "problem": "Fares change at drop when the captain is paid directly",
+     "what": "The QR carries the app fare. Riders see a 'matches app' tick, and Rapido refunds any gap",
+     "change": "Riders stop bracing for a fight at drop, so fewer quit after one ride",
+     "risk": "Refund cost until bad actors are removed"
+    },
+    {
+     "title": "Cancel guard",
+     "problem": "Captains call to screen drops and cash",
+     "what": "Masked calls with a one-tap 'asked to cancel' report that hits the captain's score",
+     "change": "Captains can't quietly screen trips anymore, so cancellations drop.",
+     "risk": "Captains may lose income on trips they dislike"
+    },
+    {
+     "title": "Reliability-priced fee",
+     "problem": "The subscription doesn't reward good behaviour",
+     "what": "Captains who complete as booked pay a lower daily fee and get priority on long trips",
+     "change": "We'd be paying captains for trust with the one lever Rapido has.",
+     "risk": "Less fee revenue per reliable captain"
+    }
+   ]
+  },
+  {
+   "type": "metrics",
+   "section": "metrics",
+   "title": "Measure rides that go *as booked*",
+   "nsm": {
+    "name": "Rides completed as booked, each week",
+    "why": "No captain cancel, no fare change, no complaint. It's the ride that makes someone come back, and raw ride volume doesn't show it."
+   },
+   "inputs": [
+    {
+     "name": "Captain-initiated cancellation rate",
+     "target": "−30%"
+    },
+    {
+     "name": "Fare disputes per 10k rides",
+     "target": "−40%"
+    },
+    {
+     "name": "Riders who ride again within 7 days",
+     "target": "+5 pts"
+    },
+    {
+     "name": "Rides paid at the app fare",
+     "target": "≥ 98%"
+    }
+   ],
+   "features": [
+    "Fare-lock refunds",
+    "Cancel reports",
+    "Fee-tier mix"
+   ],
+   "guardrails": [
+    "Daily active captains",
+    "Average pickup ETA",
+    "Captain earnings per day"
+   ],
+   "test": "Pilot fare lock and reliability fees in one city for 6 weeks against a matched holdout city. Ship if as-booked rides rise and captain supply holds."
+  },
+  {
+   "type": "steal",
+   "section": "metrics",
+   "title": "What to *take* back to your product",
+   "steal": [
+    "Charge the supply side a flat fee and let them keep the upside",
+    "Put every price on one screen and let the gap sell",
+    "Use idle supply for a second job (parcel)"
+   ],
+   "avoid": [
+    "Handing over the payment with no way to enforce the price",
+    "Buying growth with ads when one bad ride undoes it"
+   ],
+   "insight": "Zero commission won Rapido the supply war, but it also gave away its grip on the ride. The **daily fee** is the only lever it has left over captains, so we'd make that fee price in reliability."
+  },
+  {
+   "type": "closing",
+   "section": "metrics",
+   "title": "Thank *you*",
+   "lede": "Questions, pushback and better ideas welcome.",
+   "sources": [
+    "Social Samosa / Storyboard18: Rapido FY25 revenue, loss, ad spend",
+    "CMV360 / Planify: Q2 FY25 daily rides, monthly customers",
+    "TechCrunch: $240M at $3B, 400+ cities (May 2026)",
+    "Inc42 / Planify: cab and auto zero-commission model",
+    "Outlook Business / Angel One: Karnataka bike-taxi ban 2025",
+    "Voxya, Deccan Herald, Storyboard18: rider complaints",
+    "Rapido App Store listing: screenshots",
+    "rapido.bike: brand colours, Noto Sans, logo",
+    "Inc42 (Jul 2026): Ownly in Rapido app, NRAI MoU, ~10% share claim",
+    "Upstox (Mar 2026): Ownly launch, ~₹30 fee, 20k restaurants",
+    "App Store: Ownly reviews, 4.6★ from 19k ratings",
+    "LinkedIn: posts by Ayush Gupta, Vivek Asthana (via search)"
+   ]
+  }
+ ]
+}</script>
+
+<script>
+/* ===========================================================
+   RENDERER: one function per slide type. See SKILL.md for the schema.
+   =========================================================== */
+const D = JSON.parse(document.getElementById('teardown-data').textContent);
+const SECTIONS = [
+  ['context', 'Context'], ['users', 'Users & Problem'], ['experience', 'Experience'],
+  ['business', 'Business Model'], ['growth', 'Growth & Competition'],
+  ['opportunities', 'Opportunities'], ['metrics', 'Metrics & Takeaways'],
+];
+const secIndex = s => Math.max(0, SECTIONS.findIndex(x => x[0] === s));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// tiny markdown: **bold**, *italic*
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
+const list = (items, cls = '') => `<ul class="list ${cls}">${(items || []).map(i => `<li>${md(i)}</li>`).join('')}</ul>`;
+const meter = v => `<div class="meter"><i style="width:${Math.max(0, Math.min(100, v))}%"></i></div>`;
+const dots = (n, max = 5) => `<span class="dots">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
+const verdict = v => v ? `<span class="verdict v-${esc(String(v).toLowerCase())}">${esc(v)}</span>` : '';
+const r = (i) => `reveal d${Math.min(6, i + 1)}`;
+
+function head(s) {
+  const i = secIndex(s.section);
+  const kick = s.kicker || SECTIONS[i][1];
+  return `<div class="head">
+    <div class="kicker reveal"><span class="dot"></span><b>${String(i + 1).padStart(2, '0')}</b> ${esc(kick)}</div>
+    ${s.title ? `<h2 class="title reveal d1">${md(s.title)}</h2>` : ''}
+    ${s.lede ? `<p class="lede reveal d2">${md(s.lede)}</p>` : ''}
+  </div>`;
+}
+
+const R = {
+  cover(s) {
+    const p = D.product || {};
+    const cols = SECTIONS.map(([k]) => `var(--c-${k})`);
+    const orb = (c, x, y, sz, d) => `<span style="background:${c};left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;animation-delay:${d}s"></span>`;
+    return `<div class="orbs">${orb(cols[0], 260, 0, 380, 0)}${orb(cols[1], 40, 240, 330, 1.5)}${orb(cols[3], 330, 330, 300, 3)}${orb(cols[4], 120, 520, 220, 4.5)}${orb(cols[2], 470, 600, 160, 2)}</div>
+    <div class="frame">
+      <div class="brand reveal"><div class="logo">${p.logo ? `<img src="${esc(p.logo)}" alt="">` : esc((p.name || '?')[0])}</div>
+        <div class="kicker">Product Teardown · ${esc(p.category || '')}</div></div>
+      <div>
+        <div class="hero reveal d1">${md(s.title || p.name)}</div>
+        <div class="sub reveal d2">${md(s.subtitle || p.tagline || '')}</div>
+      </div>
+      <div class="reveal d3" style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div class="meta">
+          ${D.author ? `<div>Teardown by<b>${esc(D.author)}</b></div>` : ''}
+          ${D.date ? `<div>Date<b>${esc(D.date)}</b></div>` : ''}
+          ${D.goal ? `<div>Lens<b>${esc(D.goal)}</b></div>` : ''}
+        </div>
+        <div class="stripe">${cols.map(c => `<i style="background:${c}"></i>`).join('')}</div>
+      </div>
+    </div>`;
+  },
+
+  lenses(s) {
+    const items = s.items || SECTIONS.map(([k, t], i) => ({ section: k, title: t, desc: (s.descs || [])[i] || '' }));
+    return `<div class="frame">${head(s)}<div class="body"><div class="lenses">
+      <div class="lens intro reveal d1"><div class="n">THE TEARDOWN</div><div class="t">${md(s.intro || 'Seven lenses, one story')}</div></div>
+      ${items.map((it, i) => `<div class="lens sec-${esc(it.section)} reveal ${'d' + Math.min(6, i + 1)}">
+        <div class="n">${String(i + 1).padStart(2, '0')}</div>
+        <div><div class="t">${md(it.title)}</div>${it.desc ? `<div class="d">${md(it.desc)}</div>` : ''}</div></div>`).join('')}
+    </div></div></div>`;
+  },
+
+  tldr(s) {
+    const v = s.verdict || {}; const pct = Math.max(0, Math.min(10, +v.score || 0)) * 10; const C = 2 * Math.PI * 130;
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:1.9fr 1fr">
+      <div class="grid g3" style="grid-template-rows:1fr">${(s.insights || []).map((x, i) => `<div class="card reveal ${'d' + (i + 2)}" style="display:flex;flex-direction:column;gap:18px">
+        <div class="num" style="font-size:64px;color:var(--sec-ink)">${String(i + 1).padStart(2, '0')}</div><div class="h3">${md(x.title)}</div><div class="p">${md(x.body)}</div></div>`).join('')}</div>
+      <div class="card tint reveal d5" style="display:flex;flex-direction:column;justify-content:center;text-align:center;gap:18px">
+        <div class="label c">Verdict</div>
+        <div class="ring"><svg viewBox="0 0 300 300" width="300" height="300"><circle cx="150" cy="150" r="130" fill="none" stroke="var(--line)" stroke-width="18"/>
+          <circle cx="150" cy="150" r="130" fill="none" stroke="var(--sec-ink)" stroke-width="18" stroke-linecap="round" stroke-dasharray="${C * pct / 100} ${C}"/></svg>
+          <div class="v"><div><div class="num">${esc(v.score ?? '–')}</div><div class="src">OUT OF 10</div></div></div></div>
+        <div class="h3" style="font-size:32px">${md(v.label || '')}</div></div>
+    </div></div></div>`;
+  },
+
+  snapshot(s) {
+    const st = s.stats || [];
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-rows:auto 1fr;gap:28px">
+      <div class="grid" style="grid-template-columns:1.25fr 1fr;height:auto">
+        <div class="card solid reveal d2"><div class="label">In one line</div><div class="h3" style="font-size:44px">${md(s.oneliner)}</div></div>
+        <div class="card reveal d3"><div class="grid g2" style="gap:18px 28px">${(s.facts || []).map(f => `<div><div class="label" style="margin-bottom:6px">${esc(f.k)}</div><div class="p" style="font-weight:600;color:var(--ink)">${md(f.v)}</div></div>`).join('')}</div></div>
+      </div>
+      <div class="grid" style="grid-template-columns:repeat(${st.length || 4},1fr)">${st.map((x, i) => `<div class="card stat reveal ${'d' + (i + 3)}">
+        <div class="num">${esc(x.value)}</div><div><div class="p">${md(x.label)}</div>${x.source ? `<div class="src">${esc(x.source)}</div>` : ''}</div></div>`).join('')}</div>
+    </div></div></div>`;
+  },
+
+  framing(s) {
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:1.2fr 1fr">
+      <div class="grid" style="grid-template-rows:auto 1fr">
+        <div class="card solid reveal d2"><div class="label">Problem statement</div><div class="h3" style="font-size:42px">${md(s.problem)}</div></div>
+        <div class="grid g3 reveal d3">${[['Goal', s.goal], ['Scope', s.scope], ['Linked metric', s.metric]].map(([k, v]) => `<div class="card tint"><div class="label c">${k}</div><div class="p" style="font-weight:600;color:var(--ink)">${md(v)}</div></div>`).join('')}</div>
+      </div>
+      <div class="grid" style="grid-template-rows:1fr 1fr">
+        <div class="card reveal d4"><div class="label c">Clarifying questions</div>${list(s.questions)}</div>
+        <div class="card reveal d5"><div class="label c">Assumptions</div>${list(s.assumptions)}</div>
+      </div>
+    </div></div></div>`;
+  },
+
+  personas(s) {
+    const ps = s.personas || [];
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:repeat(${ps.length},1fr)">${ps.map((p, i) => `<div class="card persona reveal ${'d' + (i + 2)}">
+      <div class="avatar">${esc(p.emoji || '🙂')}</div><div class="h3">${md(p.name)}</div><div class="role">${md(p.role)}</div><hr>
+      <div class="label c">Wants</div><div class="p" style="margin-bottom:20px">${md(p.goal)}</div>
+      <div class="label c">Pains</div>${list(p.pains)}
+      ${p.before ? `<hr><div class="label">Before this product</div><div class="p small">${md(p.before)}</div>` : ''}
+    </div>`).join('')}</div></div></div>`;
+  },
+
+  jtbd(s) {
+    const st = s.statement || {};
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:1.6fr 1fr">
+      <div class="card tint reveal d2" style="display:flex;align-items:center"><div class="jtbd">
+        <span class="k">When</span>${md(st.when)}<br><span class="k">I want to</span>${md(st.want)}<br><span class="k">So I can</span>${md(st.so)}</div></div>
+      <div class="grid" style="grid-template-rows:auto 1fr">
+        <div class="card reveal d3"><div class="label c">Pain intensity</div><div class="h3" style="margin-bottom:18px">${md(s.intensity?.label || '')}</div>${meter((s.intensity?.score || 0) * 10)}</div>
+        <div class="card reveal d4"><div class="label c">What they did before</div>${list(s.before)}</div>
+      </div>
+    </div></div></div>`;
+  },
+
+  journey(s) {
+    const st = s.stages || []; const n = st.length || 1; const W = 1696, H = 200, pad = W / n / 2;
+    const pts = st.map((x, i) => [pad + i * (W / n), 30 + (5 - (x.emotion || 3)) * 35]);
+    const path = pts.map((p, i) => {
+      if (!i) return `M${p[0]},${p[1]}`;
+      const q = pts[i - 1], cx = (q[0] + p[0]) / 2;
+      return `C${cx},${q[1]} ${cx},${p[1]} ${p[0]},${p[1]}`;
+    }).join(' ');
+    const faces = ['', '😣', '😕', '😐', '🙂', '🤩'];
+    return `<div class="frame">${head(s)}<div class="body"><div class="journey">
+      <div class="curve reveal d2"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="overflow:visible">
+        <line x1="0" x2="${W}" y1="100" y2="100" stroke="var(--line)" stroke-dasharray="6 8"/>
+        <path d="${path}" fill="none" stroke="var(--sec)" stroke-width="6" stroke-linecap="round"/>
+        ${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="16" fill="var(--card)" stroke="var(--sec)" stroke-width="6"/><text x="${p[0] + 26}" y="${p[1] - 18}" font-size="34">${faces[st[i].emotion || 3]}</text>`).join('')}
+      </svg></div>
+      <div class="cols" style="grid-template-columns:repeat(${n},1fr)">${st.map((x, i) => `<div class="stage reveal ${'d' + (i + 2)}">
+        <div class="label c" style="margin:0">${String(i + 1).padStart(2, '0')} · ${esc(x.touchpoint || '')}</div><div class="h3">${md(x.name)}</div>
+        <div class="p small">${md(x.doing)}</div>${x.friction ? `<div class="fr">${md(x.friction)}</div>` : ''}</div>`).join('')}</div>
+    </div></div></div>`;
+  },
+
+  ux(s) {
+    const shot = s.image ? `<img src="${esc(s.image)}" alt="${esc(s.imageAlt || 'screenshot')}">` : esc(s.imagePlaceholder || 'Add a screenshot: set "image" on this slide');
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:${s.wide ? '1.3fr' : '440px'} 1fr 1fr">
+      <div class="reveal d2">${s.wide ? `<div class="shot">${s.image ? shot : ''}</div>` : `<div class="phone"><div class="scr">${shot}</div></div>`}</div>
+      <div class="card reveal d3"><div class="label" style="color:var(--c-experience)">✓ What works</div>${list(s.works)}</div>
+      <div class="grid" style="grid-template-rows:1fr auto">
+        <div class="card reveal d4"><div class="label" style="color:var(--c-users)">✕ Friction</div>${list(s.friction)}</div>
+        ${s.clever ? `<div class="card solid sec-opportunities reveal d5"><div class="label">Clever detail</div><div class="p">${md(s.clever)}</div></div>` : ''}
+      </div>
+    </div></div></div>`;
+  },
+
+  features(s) {
+    return `<div class="frame">${head(s)}<div class="body" style="display:flex;flex-direction:column;gap:22px">
+      <table class="t reveal d2"><thead><tr><th style="width:20%">Feature</th><th>Why it exists</th><th>Behaviour it drives</th><th style="width:12%">Verdict</th></tr></thead>
+      <tbody>${(s.rows || []).map(x => `<tr><td>${md(x.feature)}</td><td>${md(x.why)}</td><td>${md(x.behavior)}</td><td>${verdict(x.verdict)}</td></tr>`).join('')}</tbody></table>
+      ${s.absences ? `<div class="card tint reveal d3" style="padding:24px 32px"><span class="label c">Deliberately absent · </span><span class="p">${md(s.absences)}</span></div>` : ''}
+    </div></div>`;
+  },
+
+  business(s) {
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:1.15fr 1fr">
+      <div class="card reveal d2"><div class="label c">Revenue streams</div>${(s.streams || []).map(x => `<div class="stream"><div><div class="h3">${md(x.name)}</div><div class="p small muted">${md(x.note || '')}</div></div><div class="pct">${x.share != null ? esc(x.share) + '%' : ''}</div>${x.share != null ? meter(x.share) : ''}</div>`).join('')}</div>
+      <div class="grid" style="grid-template-rows:auto 1fr auto">
+        ${s.pricing ? `<div class="grid reveal d3" style="grid-template-columns:repeat(${s.pricing.length},1fr);height:auto">${s.pricing.map(t => `<div class="tier"><div class="label">${esc(t.tier)}</div><div class="num">${esc(t.price)}</div><div class="p small">${md(t.for || '')}</div></div>`).join('')}</div>` : '<div></div>'}
+        <div class="card solid reveal d4"><div class="label">The moat</div><div class="h3">${md(s.moat || '')}</div></div>
+        ${s.payer ? `<div class="card tint reveal d5" style="padding:24px 32px"><span class="label c">Who pays vs who uses · </span><span class="p">${md(s.payer)}</span></div>` : ''}
+      </div>
+    </div></div></div>`;
+  },
+
+  growth(s) {
+    const nodes = s.loop || []; const n = nodes.length || 1; const cx = 330, cy = 330, R0 = 230;
+    const pos = nodes.map((_, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + R0 * Math.cos(a), cy + R0 * Math.sin(a)]; });
+    const nodeSecs = ['growth', 'context', 'experience', 'business', 'opportunities', 'users'];
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:700px 1fr">
+      <div class="reveal d2" style="position:relative;width:660px;height:660px;margin-top:-20px">
+        <svg viewBox="0 0 660 660" width="660" height="660"><defs><marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--sec)"/></marker></defs>
+          <circle cx="${cx}" cy="${cy}" r="${R0}" fill="none" stroke="var(--sec)" stroke-width="3" stroke-dasharray="4 12" opacity=".7"/>
+          ${pos.map((p, i) => { const a = -Math.PI / 2 + (i + .5) * 2 * Math.PI / n; const ax = cx + R0 * Math.cos(a), ay = cy + R0 * Math.sin(a); const t = a + Math.PI / 2; return `<path d="M${ax - 8 * Math.cos(t)},${ay - 8 * Math.sin(t)} L${ax + 8 * Math.cos(t)},${ay + 8 * Math.sin(t)}" stroke="var(--sec)" stroke-width="4" marker-end="url(#ar)"/>`; }).join('')}
+          <text x="${cx}" y="${cy - 6}" text-anchor="middle" style="font-family:var(--f-display);font-style:var(--accent-fs, italic)" font-size="44" fill="var(--ink)">${esc(s.loopName || 'Growth loop')}</text>
+          <text x="${cx}" y="${cy + 34}" text-anchor="middle" class="loop-sub" style="font-family:var(--f-mono)" font-size="16" fill="var(--muted)">Self-reinforcing</text>
+        </svg>
+        ${pos.map((p, i) => `<div class="sec-${nodeSecs[i % nodeSecs.length]}" style="position:absolute;left:${p[0] - 105}px;top:${p[1] - 50}px;width:210px;min-height:100px;border-radius:22px;background:var(--sec);color:var(--on-sec);display:grid;place-items:center;text-align:center;padding:14px 16px;font-weight:700;font-size:21px;line-height:1.25;box-shadow:var(--shadow)">${md(nodes[i])}</div>`).join('')}
+      </div>
+      <div class="grid" style="grid-template-rows:auto 1fr">
+        <div class="card solid reveal d3"><div class="label">Aha moment</div><div class="h3">${md(s.aha || '')}</div></div>
+        <div class="grid g2">
+          <div class="card reveal d4"><div class="label c">Acquisition</div>${list(s.channels)}</div>
+          <div class="card reveal d5"><div class="label c">Retention hooks</div>${list(s.hooks)}</div>
+        </div>
+      </div>
+    </div></div></div>`;
+  },
+
+  competition(s) {
+    const ax = s.axes || { x: ['', ''], y: ['', ''] }; const m = s.matrix;
+    const cols = ['var(--c-context)', 'var(--c-experience)', 'var(--c-business)', 'var(--c-opportunities)', 'var(--c-metrics)', 'var(--c-users)'];
+    const cell = v => typeof v === 'number' ? dots(v, 3) : md(v);
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:640px 1fr">
+      <div class="card reveal d2" style="padding:30px">
+        <div style="position:relative;width:578px;height:560px">
+          <div style="position:absolute;left:50%;top:0;bottom:30px;border-left:2px dashed var(--line)"></div>
+          <div style="position:absolute;top:calc(50% - 15px);left:0;right:0;border-top:2px dashed var(--line)"></div>
+          <div class="src" style="position:absolute;left:0;bottom:0">← ${esc(ax.x[0])}</div><div class="src" style="position:absolute;right:0;bottom:0">${esc(ax.x[1])} →</div>
+          <div class="src" style="position:absolute;left:calc(50% + 10px);top:-8px">↑ ${esc(ax.y[1])}</div><div class="src" style="position:absolute;left:calc(50% + 10px);bottom:30px">↓ ${esc(ax.y[0])}</div>
+          ${(s.players || []).map((p, i) => `<div style="position:absolute;left:${p.x / 100 * 520}px;top:${(100 - p.y) / 100 * 490}px;display:flex;align-items:center;gap:10px;white-space:nowrap">
+            <span style="width:${p.self ? 34 : 24}px;height:${p.self ? 34 : 24}px;border-radius:50%;background:${p.self ? 'var(--c-self)' : cols[i % cols.length]};box-shadow:0 0 0 ${p.self ? 10 : 6}px color-mix(in srgb, ${p.self ? 'var(--c-self)' : cols[i % cols.length]} 20%, transparent)"></span>
+            <b style="font-size:${p.self ? 26 : 21}px">${esc(p.name)}</b></div>`).join('')}
+        </div></div>
+      ${m ? `<table class="t reveal d3" style="height:fit-content"><thead><tr><th></th>${m.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+        <tbody>${m.rows.map(rw => `<tr class="${rw.self ? 'top' : ''}"><td>${esc(rw.name)}</td>${rw.values.map(v => `<td>${cell(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : ''}
+    </div></div></div>`;
+  },
+
+  gaps(s) {
+    return `<div class="frame">${head(s)}<div class="body" style="display:grid;gap:22px;grid-auto-rows:minmax(0,1fr)">${(s.themes || []).map((g, i) => `<div class="gap reveal ${'d' + (i + 2)}">
+      <div><div class="h3" style="font-size:32px">${md(g.title)}</div>${g.root ? `<div class="p small muted" style="margin-top:6px">Root cause: ${md(g.root)}</div>` : ''}</div>
+      <div class="bars"><div class="row">Frequency ${meter((g.frequency || 0) * 20)}</div><div class="row">Severity ${meter((g.severity || 0) * 20)}</div></div>
+      <div>${g.quote ? `<div class="quote">“${md(g.quote)}”</div>` : ''}${g.source ? `<div class="src" style="padding-left:24px">${esc(g.source)}</div>` : ''}</div>
+    </div>`).join('')}</div></div>`;
+  },
+
+  rice(s) {
+    const rows = (s.rows || []).map(x => ({ ...x, score: x.score ?? Math.round((x.reach * x.impact * (x.confidence / 100)) / x.effort * 10) / 10 })).sort((a, b) => b.score - a.score);
+    return `<div class="frame">${head(s)}<div class="body" style="display:flex;flex-direction:column;gap:22px">
+      <table class="t reveal d2"><thead><tr><th style="width:38%">Idea</th><th>Reach${s.reachUnit ? ` <span style="text-transform:none">(${esc(s.reachUnit)})</span>` : ''}</th><th>Impact</th><th>Confidence</th><th>Effort</th><th>RICE</th></tr></thead>
+      <tbody>${rows.map((x, i) => `<tr class="${i === 0 ? 'top' : ''}"><td>${i === 0 ? '★ ' : ''}${md(x.idea)}</td><td>${esc(x.reach)}</td><td>${esc(x.impact)}</td><td>${esc(x.confidence)}%</td><td>${esc(x.effort)}</td><td><span class="score">${esc(x.score)}</span></td></tr>`).join('')}</tbody></table>
+      ${s.note ? `<div class="p small muted reveal d3">${md(s.note)}</div>` : ''}
+    </div></div>`;
+  },
+
+  solutions(s) {
+    const cs = s.cards || [];
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:repeat(${cs.length},1fr)">${cs.map((c, i) => `<div class="card sol ${i === 0 ? 'tint' : ''} reveal ${'d' + (i + 2)}">
+      ${c.tag ? `<span class="chip badge">${esc(c.tag)}</span>` : ''}
+      <div class="num" style="font-size:60px;color:var(--sec-ink)">${String(i + 1).padStart(2, '0')}</div>
+      <div class="h3">${md(c.title)}</div>
+      <div class="row"><div class="label c">Solves</div><div class="p small">${md(c.problem)}</div></div>
+      <div class="row"><div class="label c">What we build</div><div class="p small">${md(c.what)}</div></div>
+      <div class="row"><div class="label c">Behaviour change</div><div class="p small">${md(c.change)}</div></div>
+      ${c.risk ? `<div class="row"><div class="label">Risk / trade-off</div><div class="p small muted">${md(c.risk)}</div></div>` : ''}
+    </div>`).join('')}</div></div></div>`;
+  },
+
+  metrics(s) {
+    const n = s.nsm || {};
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:1fr 1.25fr">
+      <div class="card solid nsm reveal d2"><div class="label">North Star Metric</div><div class="h3">${md(n.name)}</div><div class="p" style="margin-top:22px">${md(n.why || '')}</div>
+        ${s.test ? `<div style="margin-top:34px;padding-top:24px;border-top:1px solid color-mix(in srgb, var(--on-sec) 30%, transparent)"><div class="label">How we'd test it</div><div class="p small">${md(s.test)}</div></div>` : ''}</div>
+      <div class="grid" style="grid-template-rows:auto auto 1fr;gap:22px">
+        <div class="reveal d3"><div class="label c">Input metrics</div><div style="display:grid;gap:12px">${(s.inputs || []).map(x => `<div class="metric"><div class="p">${md(x.name)}</div>${x.target ? `<span class="chip">${esc(x.target)}</span>` : ''}</div>`).join('')}</div></div>
+        ${s.features ? `<div class="reveal d4"><div class="label c">Feature metrics</div><div style="display:flex;flex-wrap:wrap;gap:10px">${s.features.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div></div>` : '<div></div>'}
+        <div class="card sec-users reveal d5"><div class="label c">Guardrails · must not get worse</div>${list(s.guardrails)}</div>
+      </div>
+    </div></div></div>`;
+  },
+
+  steal(s) {
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:1fr 1fr 1.1fr">
+      <div class="card sec-experience reveal d2"><div class="label c">Steal</div>${list(s.steal)}</div>
+      <div class="card sec-users reveal d3"><div class="label c">Avoid</div>${list(s.avoid)}</div>
+      <div class="card solid sec-opportunities reveal d4" style="display:flex;flex-direction:column;justify-content:center">
+        <div class="label">Non-obvious insight</div><div class="h3" style="font-size:44px">${md(s.insight || '')}</div></div>
+    </div></div></div>`;
+  },
+
+  // the feature the teardown is about: what changed, when, before/after, why
+  spotlight(s) {
+    const shot = s.image ? `<div class="reveal d2"><div class="phone"><div class="scr"><img src="${esc(s.image)}" alt="${esc(s.imageAlt || s.feature || '')}"></div></div></div>` : '';
+    const chips = [s.launched, s.goal, s.platform].filter(Boolean).map(c => `<span class="chip">${esc(c)}</span>`).join(' ');
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:${s.image ? '440px ' : ''}1.15fr 1fr">
+      ${shot}
+      <div class="grid" style="grid-template-rows:auto 1fr">
+        <div class="card solid reveal d2"><div class="label">The feature</div><div class="h3" style="font-size:46px">${md(s.feature)}</div>
+          ${chips ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px">${chips.replace(/class="chip"/g, 'class="chip" style="background:color-mix(in srgb, var(--on-sec) 16%, transparent);color:var(--on-sec)"')}</div>` : ''}
+          ${s.what ? `<div class="p" style="margin-top:14px">${md(s.what)}</div>` : ''}</div>
+        <div class="ba reveal d3">
+          <div class="card"><div class="label">Before</div><div class="p small">${md(s.before || '')}</div></div>
+          <div class="card tint"><div class="label c">After</div><div class="p small">${md(s.after || '')}</div></div>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-rows:1fr auto">
+        <div class="card reveal d4"><div class="label c">Why they likely built it</div>${list(s.why)}</div>
+        ${s.signal ? `<div class="card tint reveal d5" style="padding:24px 30px"><div class="label c">The signal</div><div class="p small">${md(s.signal)}</div></div>` : ''}
+      </div>
+    </div></div></div>`;
+  },
+
+  // what PMs and users are saying, quote by quote, with the platform and the stance
+  voices(s) {
+    const qs = (s.quotes || []).slice(0, 6);
+    const lab = { praise: 'Praise', critique: 'Critique', mixed: 'Mixed' };
+    return `<div class="frame">${head(s)}<div class="body" style="display:flex;flex-direction:column;gap:20px">
+      <div class="voices" style="grid-template-columns:repeat(${Math.min(3, qs.length) || 1},1fr)">${qs.map((q, i) => `<div class="card voice ${esc(q.sentiment || 'mixed')} reveal ${'d' + Math.min(6, i + 2)}">
+        <div class="top"><span class="plat">${esc(q.platform || '')}</span><span class="sent ${esc(q.sentiment || 'mixed')}">${lab[q.sentiment] || 'Mixed'}</span></div>
+        <div class="q">“${md(q.text)}”</div>
+        <div class="who"><b>${esc(q.who || '')}</b>${q.role ? `, ${esc(q.role)}` : ''}${q.date ? ` · ${esc(q.date)}` : ''}${q.paraphrased ? ' · paraphrased' : ''}</div>
+      </div>`).join('')}</div>
+      ${s.summary ? `<div class="card tint reveal d6" style="padding:22px 30px"><span class="label c">Net read · </span><span class="p">${md(s.summary)}</span></div>` : ''}
+    </div></div>`;
+  },
+
+  statement(s) {
+    return `<div class="frame">${head({ ...s, title: '' })}<div class="big reveal d2">${md(s.text)}</div>
+      ${s.attribution ? `<div class="src reveal d3" style="font-size:20px;margin-top:30px">— ${esc(s.attribution)}</div>` : ''}</div>`;
+  },
+
+  divider(s) {
+    const i = secIndex(s.section);
+    return `<div class="frame"><div class="n reveal">${String(i + 1).padStart(2, '0')}</div>
+      <div class="big reveal d1">${md(s.title || SECTIONS[i][1])}</div>${s.lede ? `<div class="p reveal d2">${md(s.lede)}</div>` : ''}</div>`;
+  },
+
+  bullets(s) {
+    const cs = s.columns || [{ points: s.points }];
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:repeat(${cs.length},1fr)">${cs.map((c, i) => `<div class="card ${c.solid ? 'solid' : ''} reveal ${'d' + (i + 2)}">
+      ${c.heading ? `<div class="label c">${esc(c.heading)}</div>` : ''}${list(c.points)}</div>`).join('')}</div></div></div>`;
+  },
+
+  image(s) {
+    return `<div class="frame">${head(s)}<div class="body"><div class="grid" style="grid-template-columns:${s.caption ? '1.6fr 1fr' : '1fr'}">
+      <div class="shot reveal d2"><img src="${esc(s.image)}" alt="${esc(s.alt || '')}"></div>
+      ${s.caption ? `<div class="card reveal d3"><div class="label c">${esc(s.captionLabel || 'Notes')}</div>${Array.isArray(s.caption) ? list(s.caption) : `<div class="p">${md(s.caption)}</div>`}</div>` : ''}
+    </div></div></div>`;
+  },
+
+  closing(s) {
+    return `<div class="frame" style="justify-content:space-between">
+      <div class="kicker reveal"><span class="dot"></span>Fin</div>
+      <div><div class="hero reveal d1" style="font-family:var(--f-display);font-size:150px;line-height:.95;letter-spacing:-0.04em;font-weight:500">${md(s.title || 'Thank *you*')}</div>
+        ${s.lede ? `<div class="lede reveal d2" style="font-size:32px">${md(s.lede)}</div>` : ''}</div>
+      ${s.sources ? `<div class="reveal d3"><div class="label">Sources</div><div class="src" style="font-size:16px;line-height:1.7;columns:2;column-gap:60px">${s.sources.map(x => `<div>${esc(x)}</div>`).join('')}</div></div>` : '<div></div>'}
+    </div>`;
+  },
+};
+
+/* ---------- BUILD SLIDES ---------- */
+if (D.theme) document.documentElement.dataset.theme = D.theme;
+
+/* ---------- BRAND MODE: D.brand recolours the deck in the company's own palette ----------
+   brand: { mode: "light"|"dark", colors: ["#hex", ...] (primary first), paper, card, ink, muted,
+            sections: { users: "#hex", ... } (optional explicit map), fontDisplay, fontBody } */
+function applyBrand(b) {
+  if (!b) return;
+  const root = document.documentElement;
+  if (b.mode) root.dataset.theme = b.mode === 'dark' ? 'midnight' : 'atelier';
+  const set = (k, v) => v && root.style.setProperty(k, v);
+  const hex = h => { h = String(h).replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255); };
+  const lum = h => { const c = hex(h).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const contrast = (a, b2) => { const [x, y] = [lum(a), lum(b2)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+  set('--paper', b.paper); set('--slide-bg', b.paper); set('--card', b.card); set('--ink', b.ink); set('--ink-2', b.ink2 || b.ink);
+  set('--muted', b.muted); set('--stage-bg', b.stage); set('--logo-bg', b.logoBg);
+  if (b.ink) set('--line', `color-mix(in srgb, ${b.ink} 13%, transparent)`);
+  if (b.paper) set('--paper-2', `color-mix(in srgb, ${b.paper} 92%, ${b.ink || '#888'})`);
+  const cols = (b.colors || []).filter(Boolean);
+  const dark = b.textDark || '#111111', light = b.textLight || '#FFFFFF';
+  const hl = [];
+  SECTIONS.forEach(([k], i) => {
+    let c = (b.sections || {})[k];
+    if (!c && cols.length) {
+      const base = cols[i % cols.length], round = Math.floor(i / cols.length);
+      // reuse the palette with alternating tints/shades when it has fewer than 7 colours
+      c = round === 0 ? base : `color-mix(in oklab, ${base} ${round % 2 ? 62 : 78}%, ${round % 2 ? (b.ink || '#000') : (b.paper || '#fff')})`;
+    }
+    if (!c) return;
+    set(`--c-${k}`, c);
+    // too light (or dark) to read as text on the page: keep the hue but darken it for labels and numbers,
+    // and set title accents as ink on a highlighter bar of the brand colour (how yellow brands do it)
+    if (/^#[0-9a-f]{3,6}$/i.test(c) && b.paper && /^#[0-9a-f]{3,6}$/i.test(b.paper) && contrast(c, b.paper) < 3) {
+      set(`--ink-${k}`, `color-mix(in oklch, ${c} ${b.mode === 'dark' ? 60 : 62}%, ${b.mode === 'dark' ? '#fff' : '#000'})`);
+      hl.push(k);
+    }
+    if (/^#[0-9a-f]{3,6}$/i.test(c)) set(`--on-${k}`, contrast(c, light) >= contrast(c, dark) ? light : dark);
+    else set(`--on-${k}`, b.mode === 'dark' ? dark : light);
+  });
+  set('--c-self', b.self || cols[0]);
+  // title accents: real italics only if the brand ships an italic display face; otherwise colour (or highlight)
+  const ownItalic = (b.fontFaces || []).some(f => f.style === 'italic' && f.family.toLowerCase() === String(b.fontDisplay || '').toLowerCase());
+  const accent = b.accent || (ownItalic ? 'italic' : 'color');
+  set('--accent-fs', accent === 'italic' ? 'italic' : 'normal');
+  if (accent === 'highlight') SECTIONS.forEach(([k]) => hl.includes(k) || hl.push(k));
+  if (accent === 'none') { const st = document.createElement('style'); st.textContent = '.slide h2.title em, .slide .hero em { color: inherit; }'; document.head.appendChild(st); }
+  if (hl.length) {
+    const st = document.createElement('style');
+    const hexes = [...cols, ...Object.values(b.sections || {})].filter(c => /^#[0-9a-f]{3,6}$/i.test(c));
+    const inkHex = /^#[0-9a-f]{3,6}$/i.test(b.ink || '') ? b.ink : (b.mode === 'dark' ? '#ffffff' : '#111111');
+    const lightest = hexes.sort((x, y) => contrast(y, inkHex) - contrast(x, inkHex))[0];
+    const bar = k => { const c = (b.sections || {})[k] || ''; return /^#[0-9a-f]{3,6}$/i.test(c) && contrast(c, inkHex) >= 4.5 ? `var(--c-${k})` : (lightest || `var(--c-${k})`); };
+    st.textContent = hl.map(k => `.sec-${k} h2.title em, .sec-${k}.t-statement .big em, .sec-${k}.t-closing .hero em { color: var(--ink); font-style: normal; background: linear-gradient(transparent 62%, ${bar(k)} 62%, ${bar(k)} 94%, transparent 94%); padding: 0 .06em; }`).join('\n');
+    document.head.appendChild(st);
+  }
+  // Fonts: the brand's own typefaces. fontFaces (downloaded by build.py into assets/fonts) load the exact
+  // files the company's site uses; any named family not in fontFaces is fetched from Google Fonts.
+  const faces = b.fontFaces || [];
+  if (faces.length) {
+    const st = document.createElement('style');
+    st.textContent = faces.map(f => `@font-face{font-family:'${f.family}';src:url('${f.src}') format('${/\.woff$/.test(f.src) ? 'woff' : 'woff2'}');font-weight:${f.weight || 400};font-style:${f.style || 'normal'};font-display:swap}`).join('\n');
+    document.head.appendChild(st);
+  }
+  const hosted = new Set(faces.map(f => f.family.toLowerCase()));
+  const google = [b.fontDisplay, b.fontBody, b.fontLabel].filter(f => f && !hosted.has(f.toLowerCase()));
+  if (google.length) {
+    const l = document.createElement('link'); l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?' + [...new Set(google)].map(f => `family=${encodeURIComponent(f)}:ital,wght@0,400;0,500;0,600;0,700;1,400`).join('&') + '&display=swap';
+    document.head.appendChild(l);
+  }
+  if (b.fontDisplay || b.fontBody) {
+    // the deck uses the company's type only: remove the template fonts so nothing else can render
+    document.getElementById('base-fonts')?.remove();
+    root.classList.add('brand-type');
+    const disp = b.fontDisplay || b.fontBody, body = b.fontBody || b.fontDisplay;
+    set('--f-display', `'${disp}', system-ui, sans-serif`);
+    set('--f-body', `'${body}', system-ui, sans-serif`);
+    set('--f-mono', `'${b.fontLabel || body}', system-ui, sans-serif`);
+  }
+  if (b.titleWeight) set('--title-weight', b.titleWeight);
+}
+applyBrand(D.brand);
+document.title = `${(D.product || {}).name || 'Product'} · Teardown`;
+const stage = document.getElementById('deckStage');
+const slides = D.slides || [];
+stage.innerHTML = slides.map((s, idx) => {
+  const sec = s.section || 'context';
+  const fn = R[s.type] || R.bullets;
+  const i = secIndex(sec);
+  const bars = SECTIONS.map(([k], j) => `<i class="${j === i ? 'on' : ''}" style="background:var(--c-${k})"></i>`).join('');
+  const foot = ['cover'].includes(s.type) ? '' : `<div class="foot"><span>${esc((D.product || {}).name || '')} · Product Teardown</span><span class="bars">${bars}</span><span>${String(idx + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}</span></div>`;
+  return `<section class="slide t-${esc(s.type)} sec-${esc(sec)}" data-idx="${idx}">${fn(s)}${foot}</section>`;
+}).join('');
+
+/* ---------- PRESENTATION CONTROLLER ---------- */
+class SlidePresentation {
+  constructor() {
+    this.slides = [...document.querySelectorAll('.slide')];
+    this.cur = 0;
+    const h = parseInt(location.hash.replace('#', ''), 10);
+    this.scale(); window.addEventListener('resize', () => this.scale());
+    document.addEventListener('keydown', e => {
+      if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); this.go(this.cur + 1); }
+      if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); this.go(this.cur - 1); }
+      if (e.key === 'Home') this.go(0);
+      if (e.key === 'End') this.go(this.slides.length - 1);
+      if (e.key === 't' || e.key === 'T') this.cycleTheme();
+      if (e.key === 'p' || e.key === 'P') window.print();
+    });
+    let x0 = null;
+    document.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) this.go(this.cur + (dx < 0 ? 1 : -1)); x0 = null; });
+    let wheelLock = false;
+    document.addEventListener('wheel', e => { if (wheelLock || Math.abs(e.deltaY) < 30) return; wheelLock = true; this.go(this.cur + (e.deltaY > 0 ? 1 : -1)); setTimeout(() => wheelLock = false, 700); }, { passive: true });
+    document.addEventListener('click', e => { if (e.target.closest('a')) return; this.go(this.cur + (e.clientX > innerWidth / 3 ? 1 : -1)); });
+    this.go(isNaN(h) ? 0 : h - 1);
+  }
+  scale() {
+    const f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    document.getElementById('deckStage').style.transform = `translate(${(innerWidth - 1920 * f) / 2}px, ${(innerHeight - 1080 * f) / 2}px) scale(${f})`;
+  }
+  go(i) {
+    this.cur = Math.max(0, Math.min(i, this.slides.length - 1));
+    this.slides.forEach((s, j) => { s.classList.toggle('active', j === this.cur); s.classList.toggle('visible', j === this.cur); });
+    document.getElementById('progressBar').style.width = `${(this.cur + 1) / this.slides.length * 100}%`;
+    history.replaceState(null, '', '#' + (this.cur + 1));
+  }
+  cycleTheme() {
+    const t = ['atelier', 'midnight', 'sorbet']; const el = document.documentElement;
+    el.dataset.theme = t[(t.indexOf(el.dataset.theme || 'atelier') + 1) % t.length];
+  }
+}
+window.deck = new SlidePresentation();
+
+/* ---------- OVERFLOW CHECK: window.checkOverflow() lists elements that spill past the slide ---------- */
+window.checkOverflow = () => {
+  const bad = [];
+  document.querySelectorAll('.slide').forEach((s, i) => {
+    const prev = [s.style.visibility, s.style.opacity];
+    s.style.visibility = 'visible';
+    s.querySelectorAll('.reveal').forEach(el => { el.style.transition = 'none'; el.style.transform = 'none'; });
+    const lim = s.getBoundingClientRect();
+    const sc = lim.width / 1920;
+    s.querySelectorAll('.frame *').forEach(el => {
+      const b = el.getBoundingClientRect();
+      if (b.width && (b.bottom - lim.top) / sc > 1052 && !el.closest('.foot')) bad.push(`slide ${i + 1}: <${el.tagName.toLowerCase()} class="${el.className}"> bottom=${Math.round((b.bottom - lim.top) / sc)}`);
+      if (el.scrollHeight > el.clientHeight + 4 && getComputedStyle(el).overflow === 'hidden' && el.clientHeight > 40 && !el.matches('.logo, .phone *, .shot')) bad.push(`slide ${i + 1}: clipped <${el.tagName.toLowerCase()} class="${el.className}">`);
+    });
+    s.querySelectorAll('.reveal').forEach(el => { el.style.transform = ''; el.style.transition = ''; });
+    [s.style.visibility, s.style.opacity] = prev;
+  });
+  const uniq = [...new Set(bad)].slice(0, 40);
+  if (uniq.length) console.warn('OVERFLOW\n' + uniq.join('\n'));
+  return uniq;
+};
+document.fonts.ready.then(() => window.checkOverflow());
+</script>
+</body>
+</html>
